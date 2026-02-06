@@ -31,6 +31,7 @@ const userSchema = new mongoose.Schema(
 
     dob: {
       type: String,
+      default: "",
     },
 
     phoneNumber: {
@@ -45,13 +46,19 @@ const userSchema = new mongoose.Schema(
 
     religion: {
       type: String,
-      trim: true
+      trim: true,
+      default: "",
     },
 
     role: {
       type: String,
       enum: ["admin", "user"],
       default: "user",
+    },
+
+    isProfileCompleted: {
+      type: Boolean,
+      default: false
     },
 
     password: {

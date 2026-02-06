@@ -13,6 +13,12 @@ router.post(
 );
 
 router.post(
+  '/register',
+  validator.body(validationSchema.register),
+  controller.register,
+);
+
+router.post(
   '/login',
   validator.body(validationSchema.login),
   controller.login

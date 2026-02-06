@@ -14,17 +14,45 @@ const notifyAdmin = catchAsync(async (req, res) => {
   });
 })
 
-// Login
-const login = catchAsync(async (req, res, next) => {
-  const user = await service.loginUser(req.body.email, req.body.password);
-  const tokens = await token.generateAuthTokens(user);
-  res.status(200).send({
-    message: 'Login successful',
-    data: {
-      tokens, user
-    }
+// Register
+const register = catchAsync(async (req, res, next) => {
+  await service.createUser(req.body);
+  res.status(201).send({
+    message: 'Registration successful, please login',
   });
 });
+
+// Login
+const login = catchAsync(async (req, res, next) => {
+  const { email, password } = req.body;
+  // Find user
+  const userRole = await User.findOne({ email });
+  if (!userRole) {
+    return res.status(401).send({
+      message: "Invalid email or password",
+    });
+  }
+
+  if (userRole.role !== "user") {
+    return res.status(403).send({
+      message: "This credential does not belong to a user",
+    });
+  }
+
+  // Login service (password check etc)
+  const user = await service.loginUser(email, password);
+
+  const tokens = await token.generateAuthTokens(user);
+
+  res.status(200).send({
+    message: "Login successful",
+    data: {
+      tokens,
+      user,
+    },
+  });
+});
+
 
 // Forget password send otp
 const forgotPassword = catchAsync(async (req, res, next) => {
@@ -138,5 +166,6 @@ module.exports = {
   forgotPasswordResend,
   verifyEmailOTP,
   verifyPhoneOTP,
-  notifyAdmin
+  notifyAdmin,
+  register
 };

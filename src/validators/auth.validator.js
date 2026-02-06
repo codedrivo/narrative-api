@@ -1,7 +1,4 @@
 const Joi = require('joi');
-
-
-
 const password = (value, helpers) => {
   if (
     !/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/.test(
@@ -37,6 +34,13 @@ const notifyAdmin = Joi.object({
   zipCode: Joi.string().required(),
   isTexas: Joi.boolean().required(),
 
+});
+
+const register = Joi.object({
+  firstName: Joi.string().required(),
+  lastName: Joi.string().required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
 });
 
 const login = Joi.object({
@@ -102,5 +106,6 @@ module.exports = {
   notifyAdmin,
   resetAdmin,
   verifyCtg,
-  ctgreset
+  ctgreset,
+  register
 };
