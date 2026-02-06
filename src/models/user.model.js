@@ -61,6 +61,11 @@ const userSchema = new mongoose.Schema(
       default: false
     },
 
+    terms: {
+      type: Boolean,
+      default: true
+    },
+
     password: {
       type: String,
       trim: true,
