@@ -14,8 +14,8 @@ const password = (value, helpers) => {
 };
 
 const passchange = Joi.object({
-  password_new: Joi.string().required().custom(password),
   password_old: Joi.string().required().custom(password),
+  password_new: Joi.string().required().custom(password),
 });
 
 const notificationToggle = Joi.object({
