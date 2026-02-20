@@ -29,7 +29,7 @@ router.get('/', controller.getProfile);
 
 router.patch(
   '/update',
-  // upload.single('profileimageurl'),
+  upload.single('profileimageurl'),
   controller.updateProfile,
 );
 

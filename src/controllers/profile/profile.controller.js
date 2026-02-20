@@ -45,9 +45,9 @@ const getProfile = catchAsync(async (req, res, next) => {
 
 // Update profile with image
 const updateProfile = catchAsync(async (req, res, next) => {
-  /*if (req.file) {
+  if (req.file) {
     req.body.profileimageurl = req.file.location;
-  }*/
+  }
   const user = await service.updateUser(req.user._id, req.body);
   let message = "Profile updated successfully";
 
