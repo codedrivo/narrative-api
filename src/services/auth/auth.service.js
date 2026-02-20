@@ -82,11 +82,27 @@ const updatePassword = async (user, newpass, oldpass) => {
   return changePassword(user.email, newpass);
 };
 // update User
+// Update User
 const updateUser = async (id, data) => {
+  // Handle siblings array if provided
+  if (data.siblings) {
+    data.siblingsCount = data.siblings.length;
+  }
+
+  // Handle sameAsEarly logic
+  if (data.sameAsEarly === true && data.earlyChildhood) {
+    data.lateChildhood = data.earlyChildhood;
+  }
+
+  // Handle sameAsEarlyAdulthood logic
+  if (data.sameAsEarlyAdulthood === true && data.earlyAdulthood) {
+    data.lateAdulthood = data.earlyAdulthood;
+  }
+
   const updatedUser = await User.findByIdAndUpdate(
     id,
     { $set: data },
-    { new: true },
+    { new: true, runValidators: true }
   );
 
   return updatedUser;

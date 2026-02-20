@@ -29,8 +29,14 @@ router.get('/', controller.getProfile);
 
 router.patch(
   '/update',
-  upload.single('profileimageurl'),
-  controller.updateProfile,
+  upload.fields([
+    { name: 'profileimageurl', maxCount: 1 },
+    { name: 'earlyChildhoodImage', maxCount: 1 },
+    { name: 'lateChildhoodImage', maxCount: 1 },
+    { name: 'earlyAdulthoodImage', maxCount: 1 },
+    { name: 'lateAdulthoodImage', maxCount: 1 },
+  ]),
+  controller.updateProfile
 );
 
 router.patch(

@@ -12,13 +12,11 @@ const lifeStageLocationSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
-
     areaType: {
       type: String,
       enum: ["Urban", "Rural", "Suburban", "Other"],
       default: undefined,
     },
-
     neighborhoodClass: {
       type: String,
       enum: [
@@ -30,7 +28,6 @@ const lifeStageLocationSchema = new mongoose.Schema(
       ],
       default: undefined,
     },
-
     livingSpace: {
       type: String,
       enum: [
@@ -43,17 +40,14 @@ const lifeStageLocationSchema = new mongoose.Schema(
       ],
       default: undefined,
     },
-
     livingSpaceOther: {
       type: String,
       trim: true,
       default: "",
     },
-
     maritalStatus: {
       type: String,
       enum: [
-        "",
         "Single",
         "Married",
         "Divorced",
@@ -68,7 +62,6 @@ const lifeStageLocationSchema = new mongoose.Schema(
 );
 
 // ================= SIBLINGS SCHEMA =================
-
 const siblingSchema = new mongoose.Schema(
   {
     type: {
@@ -76,7 +69,6 @@ const siblingSchema = new mongoose.Schema(
       enum: ["Brother", "Sister"],
       required: true,
     },
-
     order: {
       type: String,
       enum: ["Older", "Younger"],
@@ -93,18 +85,38 @@ const storyHighlightSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-
     momentOther: {
       type: String,
       default: "",
     },
-
     impactType: {
       type: String,
       default: "",
     },
-
     impactOther: {
+      type: String,
+      default: "",
+    },
+  },
+  { _id: false }
+);
+
+// ================= REFERENCE IMAGES SCHEMA =================
+const referenceImagesSchema = new mongoose.Schema(
+  {
+    earlyChildhood: {
+      type: String,
+      default: "",
+    },
+    lateChildhood: {
+      type: String,
+      default: "",
+    },
+    earlyAdulthood: {
+      type: String,
+      default: "",
+    },
+    lateAdulthood: {
       type: String,
       default: "",
     },
@@ -115,6 +127,7 @@ const storyHighlightSchema = new mongoose.Schema(
 /* ================= USER ================= */
 const userSchema = new mongoose.Schema(
   {
+    // Basic Information
     firstName: {
       type: String,
       trim: true,
@@ -158,8 +171,11 @@ const userSchema = new mongoose.Schema(
       private: true,
       required: true
     },
+
+    // Profile Information
     profileimageurl: {
-      type: String
+      type: String,
+      default: "",
     },
     gender: {
       type: String,
@@ -169,30 +185,62 @@ const userSchema = new mongoose.Schema(
     ageGroup: {
       type: String,
       enum: [
-        "Under 50 years old",
-        "50-59 years old",
-        "60-69 years old",
-        "70-79 years old",
-        "80-89 years old",
-        "90-100 years old",
+        "Under 50",
+        "50-59",
+        "60-69",
+        "70-79",
+        "80-89",
+        "90-100",
       ],
       default: undefined,
     },
     ethnicity: {
       type: String,
+      enum: [
+        "Black",
+        "White",
+        "Asian",
+        "Hispanic",
+        "Native",
+        "Middle Eastern",
+        "Other",
+      ],
       default: "",
     },
     paternalEthnicity: {
       type: String,
+      enum: [
+        "Black",
+        "White",
+        "Asian",
+        "Hispanic",
+        "Native",
+        "Middle Eastern",
+        "NA",
+      ],
       default: "",
     },
-
     maternalEthnicity: {
       type: String,
+      enum: [
+        "Black",
+        "White",
+        "Asian",
+        "Hispanic",
+        "Native",
+        "Middle Eastern",
+        "NA",
+      ],
       default: "",
     },
 
     // Siblings
+    siblingsCount: {
+      type: Number,
+      min: 0,
+      max: 5,
+      default: 0,
+    },
     siblings: {
       type: [siblingSchema],
       default: [],
@@ -207,9 +255,9 @@ const userSchema = new mongoose.Schema(
       type: lifeStageLocationSchema,
       default: () => ({}),
     },
-    sameAsEarlyChildhood: {
+    sameAsEarly: {
       type: Boolean,
-      default: false,
+      default: null,
     },
 
     // Adulthood
@@ -223,18 +271,24 @@ const userSchema = new mongoose.Schema(
     },
     sameAsEarlyAdulthood: {
       type: Boolean,
-      default: false,
+      default: null,
     },
 
     // Story Highlight
+    shareStory: {
+      type: String,
+      enum: ["Yes", "No"],
+      default: "",
+    },
     storyHighlight: {
       type: storyHighlightSchema,
       default: () => ({}),
     },
 
-    shareStory: {
-      type: Boolean,
-      default: false,
+    // Reference Images
+    referenceImages: {
+      type: referenceImagesSchema,
+      default: () => ({}),
     },
   },
   {
@@ -246,31 +300,35 @@ userSchema.index({ email: 'text' });
 
 // add plugin that converts mongoose to json
 userSchema.plugin(toJSON);
-
-// add apgination plugin
 userSchema.plugin(paginate);
 
-// copy data when same as early
+// Middleware to handle same as early logic before save
 userSchema.pre("save", function (next) {
-
-  if (this.sameAsEarlyChildhood) {
+  // Handle childhood same as early
+  if (this.sameAsEarly === true) {
     this.lateChildhood = this.earlyChildhood;
   }
 
-  if (this.sameAsEarlyAdulthood) {
+  // Handle adulthood same as early
+  if (this.sameAsEarlyAdulthood === true) {
     this.lateAdulthood = this.earlyAdulthood;
+  }
+
+  // Auto-calculate siblingsCount from siblings array length
+  if (this.siblings && Array.isArray(this.siblings)) {
+    this.siblingsCount = this.siblings.length;
   }
 
   next();
 });
 
-// check is user password is matching
+// Check if user password is matching
 userSchema.methods.isPasswordMatch = async function (password) {
   const user = this;
   return bcrypt.compare(password, user.password);
 };
 
-// hash the user password before saving data to db
+// Hash the user password before saving data to db
 userSchema.pre('save', async function (next) {
   const user = this;
   if (user.isModified('password')) {
@@ -279,7 +337,7 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// login user
+// Login user
 userSchema.statics.loginUser = async function (email, password) {
   const user = await this.findOne({ email });
 
@@ -290,10 +348,6 @@ userSchema.statics.loginUser = async function (email, password) {
   if (!(await user.isPasswordMatch(password))) {
     throw new ApiError('Invalid email or password', 400);
   }
-
-  /* if (user.block) {
-    throw new ApiError('You are blocked by admin', 400);
-  } */
 
   return user;
 };
