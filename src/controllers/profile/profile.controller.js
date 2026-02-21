@@ -43,11 +43,58 @@ const getProfile = catchAsync(async (req, res, next) => {
   res.status(200).send({ user: req.user });
 });
 
+// Helper function to deeply parse JSON strings
+const deepParseJSON = (data) => {
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      return deepParseJSON(parsed);
+    } catch {
+      return data;
+    }
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => deepParseJSON(item));
+  }
+
+  if (data && typeof data === 'object') {
+    const result = {};
+    for (const key in data) {
+      result[key] = deepParseJSON(data[key]);
+    }
+    return result;
+  }
+
+  return data;
+};
+
 const updateProfile = catchAsync(async (req, res, next) => {
   // Initialize referenceImages if it doesn't exist
+  if (!req.body.referenceImages) {
+    req.body.referenceImages = {};
+  }
 
+  // FIXED: Handle musicGenres - deep parse to handle multiple stringification
+  if (req.body.musicGenres) {
+    console.log('Raw musicGenres:', req.body.musicGenres);
 
-  // Handle profile image upload
+    // Deep parse to handle multiple stringification
+    const parsed = deepParseJSON(req.body.musicGenres);
+
+    // Ensure it's an array and filter out empty strings
+    if (Array.isArray(parsed)) {
+      req.body.musicGenres = parsed.filter((genre) => genre && genre.trim() !== '');
+    } else if (typeof parsed === 'string' && parsed) {
+      req.body.musicGenres = [parsed];
+    } else {
+      req.body.musicGenres = [];
+    }
+
+    console.log('Final musicGenres:', req.body.musicGenres);
+  }
+
+  // Handle file uploads
   if (req.files) {
     // Handle profile image
     if (req.files.profileimageurl) {
@@ -55,70 +102,52 @@ const updateProfile = catchAsync(async (req, res, next) => {
     }
 
     // Map uploaded files to reference images
-    if (req.files.earlyChildhoodImage) {
-      req.body.referenceImages.earlyChildhood = req.files.earlyChildhoodImage[0].location;
-    }
-    if (req.files.lateChildhoodImage) {
-      req.body.referenceImages.lateChildhood = req.files.lateChildhoodImage[0].location;
-    }
-    if (req.files.earlyAdulthoodImage) {
-      req.body.referenceImages.earlyAdulthood = req.files.earlyAdulthoodImage[0].location;
-    }
-    if (req.files.lateAdulthoodImage) {
-      req.body.referenceImages.lateAdulthood = req.files.lateAdulthoodImage[0].location;
-    }
+    const imageMappings = {
+      earlyChildhoodImage: 'earlyChildhood',
+      lateChildhoodImage: 'lateChildhood',
+      earlyAdulthoodImage: 'earlyAdulthood',
+      lateAdulthoodImage: 'lateAdulthood'
+    };
+
+    Object.entries(imageMappings).forEach(([fileField, imageField]) => {
+      if (req.files[fileField] && req.files[fileField].length > 0) {
+        req.body.referenceImages[imageField] = req.files[fileField][0].location;
+      }
+    });
   }
 
   // Parse nested objects if they come as strings
-  if (req.body.earlyChildhood && typeof req.body.earlyChildhood === 'string') {
-    try {
-      req.body.earlyChildhood = JSON.parse(req.body.earlyChildhood);
-    } catch (error) {
-      console.error('Error parsing earlyChildhood:', error);
+  const fieldsToParse = [
+    'earlyChildhood',
+    'lateChildhood',
+    'earlyAdulthood',
+    'lateAdulthood',
+    'storyHighlight',
+    'siblings'
+  ];
+
+  fieldsToParse.forEach(field => {
+    if (req.body[field] && typeof req.body[field] === 'string') {
+      try {
+        req.body[field] = JSON.parse(req.body[field]);
+      } catch (error) {
+        console.error(`Error parsing ${field}:`, error);
+      }
     }
+  });
+
+  // Handle shareStory empty string
+  if (req.body.shareStory === '') {
+    delete req.body.shareStory;
   }
-  if (req.body.lateChildhood && typeof req.body.lateChildhood === 'string') {
-    try {
-      req.body.lateChildhood = JSON.parse(req.body.lateChildhood);
-    } catch (error) {
-      console.error('Error parsing lateChildhood:', error);
-    }
-  }
-  if (req.body.earlyAdulthood && typeof req.body.earlyAdulthood === 'string') {
-    try {
-      req.body.earlyAdulthood = JSON.parse(req.body.earlyAdulthood);
-    } catch (error) {
-      console.error('Error parsing earlyAdulthood:', error);
-    }
-  }
-  if (req.body.lateAdulthood && typeof req.body.lateAdulthood === 'string') {
-    try {
-      req.body.lateAdulthood = JSON.parse(req.body.lateAdulthood);
-    } catch (error) {
-      console.error('Error parsing lateAdulthood:', error);
-    }
-  }
-  if (req.body.storyHighlight && typeof req.body.storyHighlight === 'string') {
-    try {
-      req.body.storyHighlight = JSON.parse(req.body.storyHighlight);
-    } catch (error) {
-      console.error('Error parsing storyHighlight:', error);
-    }
-  }
-  if (req.body.siblings && typeof req.body.siblings === 'string') {
-    try {
-      req.body.siblings = JSON.parse(req.body.siblings);
-    } catch (error) {
-      console.error('Error parsing siblings:', error);
-    }
-  }
+
+  // Set isProfileCompleted to true on any profile update
+  req.body.isProfileCompleted = true;
 
   const user = await service.updateUser(req.user._id, req.body);
 
-  let message = "Profile updated successfully";
-
   res.status(200).send({
-    message,
+    message: "Profile updated successfully",
     data: { user },
   });
 });

@@ -7,7 +7,12 @@ const ApiError = require('../helpers/apiErrorConverter');
 // ================= LIFE STAGE LOCATION SCHEMA =================
 const lifeStageLocationSchema = new mongoose.Schema(
   {
-    cityState: {
+    city: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    state: {
       type: String,
       trim: true,
       default: "",
@@ -21,9 +26,9 @@ const lifeStageLocationSchema = new mongoose.Schema(
       type: String,
       enum: [
         "Humble",
-        "Working Class",
-        "Middle Class",
-        "Upper Class",
+        "Working",
+        "Middle",
+        "Upper",
         "Other",
       ],
       default: undefined,
@@ -32,10 +37,10 @@ const lifeStageLocationSchema = new mongoose.Schema(
       type: String,
       enum: [
         "Home",
-        "Apartment building",
+        "Apartment",
         "Townhouse",
         "Condominium",
-        "RV Style",
+        "RV",
         "Other",
       ],
       default: undefined,
@@ -83,7 +88,15 @@ const storyHighlightSchema = new mongoose.Schema(
   {
     momentType: {
       type: String,
-      default: "",
+      enum: [
+        "Career Change",
+        "Marriage",
+        "Loss of Loved One",
+        "Birth of Child",
+        "Health Challenge",
+        "Other"
+      ],
+      default: undefined,
     },
     momentOther: {
       type: String,
@@ -91,7 +104,14 @@ const storyHighlightSchema = new mongoose.Schema(
     },
     impactType: {
       type: String,
-      default: "",
+      enum: [
+        "Changed career direction",
+        "Strengthened relationships",
+        "Improved personal growth",
+        "Changed life perspective",
+        "Other"
+      ],
+      default: undefined,
     },
     impactOther: {
       type: String,
@@ -177,23 +197,26 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
     gender: {
       type: String,
       enum: ["Male", "Female", "Other"],
       default: undefined,
     },
+
     ageGroup: {
       type: String,
       enum: [
-        "Under 50",
-        "50-59",
-        "60-69",
-        "70-79",
-        "80-89",
         "90-100",
+        "80-89",
+        "70-79",
+        "60-69",
+        "50-59",
+        "Under 50",
       ],
       default: undefined,
     },
+
     ethnicity: {
       type: String,
       enum: [
@@ -205,8 +228,13 @@ const userSchema = new mongoose.Schema(
         "Middle Eastern",
         "Other",
       ],
+      default: undefined,
+    },
+    ethnicityOther: {
+      type: String,
       default: "",
     },
+
     paternalEthnicity: {
       type: String,
       enum: [
@@ -217,9 +245,15 @@ const userSchema = new mongoose.Schema(
         "Native",
         "Middle Eastern",
         "NA",
+        "Other",
       ],
+      default: undefined,
+    },
+    paternalEthnicityOther: {
+      type: String,
       default: "",
     },
+
     maternalEthnicity: {
       type: String,
       enum: [
@@ -230,8 +264,19 @@ const userSchema = new mongoose.Schema(
         "Native",
         "Middle Eastern",
         "NA",
+        "Other",
       ],
+      default: undefined,
+    },
+    maternalEthnicityOther: {
+      type: String,
       default: "",
+    },
+
+    // FIXED: Music Genres - removed enum validation
+    musicGenres: {
+      type: [String],
+      default: [],
     },
 
     // Siblings
@@ -247,6 +292,10 @@ const userSchema = new mongoose.Schema(
     },
 
     // Childhood
+    sameAsEarly: {
+      type: Boolean,
+      default: null,
+    },
     earlyChildhood: {
       type: lifeStageLocationSchema,
       default: () => ({}),
@@ -255,12 +304,12 @@ const userSchema = new mongoose.Schema(
       type: lifeStageLocationSchema,
       default: () => ({}),
     },
-    sameAsEarly: {
+
+    // Adulthood
+    sameAsEarlyAdulthood: {
       type: Boolean,
       default: null,
     },
-
-    // Adulthood
     earlyAdulthood: {
       type: lifeStageLocationSchema,
       default: () => ({}),
@@ -269,15 +318,11 @@ const userSchema = new mongoose.Schema(
       type: lifeStageLocationSchema,
       default: () => ({}),
     },
-    sameAsEarlyAdulthood: {
-      type: Boolean,
-      default: null,
-    },
 
     // Story Highlight
     shareStory: {
       type: String,
-      enum: ["Yes", "No"],
+      enum: ["", "Yes", "No"],
       default: "",
     },
     storyHighlight: {
@@ -296,9 +341,10 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+// Indexes
 userSchema.index({ email: 'text' });
 
-// add plugin that converts mongoose to json
+// Plugins
 userSchema.plugin(toJSON);
 userSchema.plugin(paginate);
 
@@ -318,6 +364,37 @@ userSchema.pre("save", function (next) {
   if (this.siblings && Array.isArray(this.siblings)) {
     this.siblingsCount = this.siblings.length;
   }
+
+  // Clear Other fields if not needed
+  if (this.ethnicity !== 'Other') {
+    this.ethnicityOther = '';
+  }
+  if (this.paternalEthnicity !== 'Other') {
+    this.paternalEthnicityOther = '';
+  }
+  if (this.maternalEthnicity !== 'Other') {
+    this.maternalEthnicityOther = '';
+  }
+
+  // FIXED: Filter out empty strings from musicGenres
+  if (this.musicGenres && Array.isArray(this.musicGenres)) {
+    this.musicGenres = this.musicGenres.filter(genre => genre && genre.trim() !== '');
+  }
+
+  // Auto-check if profile is complete
+  const requiredFields = [
+    'firstName',
+    'lastName',
+    'email',
+    'gender',
+    'ageGroup'
+  ];
+
+  const isComplete = requiredFields.every(field =>
+    this[field] && this[field].toString().trim() !== ''
+  );
+
+  this.isProfileCompleted = isComplete;
 
   next();
 });

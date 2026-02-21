@@ -81,9 +81,16 @@ const updatePassword = async (user, newpass, oldpass) => {
   }
   return changePassword(user.email, newpass);
 };
-// update User
+
 // Update User
 const updateUser = async (id, data) => {
+  // Get existing user to preserve data that might not be in the update
+  const existingUser = await User.findById(id);
+
+  if (!existingUser) {
+    throw new Error('User not found');
+  }
+
   // Handle siblings array if provided
   if (data.siblings) {
     data.siblingsCount = data.siblings.length;
@@ -99,6 +106,60 @@ const updateUser = async (id, data) => {
     data.lateAdulthood = data.earlyAdulthood;
   }
 
+  // Handle referenceImages to prevent data loss
+  if (data.referenceImages) {
+    const existingReferenceImages = existingUser.referenceImages || {};
+
+    data.referenceImages = {
+      earlyChildhood: data.referenceImages.earlyChildhood !== undefined
+        ? data.referenceImages.earlyChildhood
+        : existingReferenceImages.earlyChildhood,
+      lateChildhood: data.referenceImages.lateChildhood !== undefined
+        ? data.referenceImages.lateChildhood
+        : existingReferenceImages.lateChildhood,
+      earlyAdulthood: data.referenceImages.earlyAdulthood !== undefined
+        ? data.referenceImages.earlyAdulthood
+        : existingReferenceImages.earlyAdulthood,
+      lateAdulthood: data.referenceImages.lateAdulthood !== undefined
+        ? data.referenceImages.lateAdulthood
+        : existingReferenceImages.lateAdulthood,
+    };
+  } else {
+    delete data.referenceImages;
+  }
+
+  // Handle ethnicityOther fields
+  if (data.ethnicity !== 'Other') {
+    data.ethnicityOther = '';
+  }
+  if (data.paternalEthnicity !== 'Other') {
+    data.paternalEthnicityOther = '';
+  }
+  if (data.maternalEthnicity !== 'Other') {
+    data.maternalEthnicityOther = '';
+  }
+
+  // FIXED: Ensure musicGenres is a clean array
+  if (data.musicGenres) {
+    // If it's a string, try to parse it
+    if (typeof data.musicGenres === 'string') {
+      try {
+        data.musicGenres = JSON.parse(data.musicGenres);
+      } catch {
+        data.musicGenres = [data.musicGenres];
+      }
+    }
+
+    // Ensure it's an array and filter out empty strings
+    if (!Array.isArray(data.musicGenres)) {
+      data.musicGenres = [data.musicGenres];
+    }
+    data.musicGenres = data.musicGenres.filter((genre) => genre && genre.trim() !== '');
+  }
+
+  // Ensure isProfileCompleted is set to true
+  data.isProfileCompleted = true;
+
   const updatedUser = await User.findByIdAndUpdate(
     id,
     { $set: data },
@@ -106,6 +167,26 @@ const updateUser = async (id, data) => {
   );
 
   return updatedUser;
+};
+
+
+// Check if profile is complete (optional utility)
+const isProfileComplete = async (id) => {
+  const user = await User.findById(id);
+
+  const requiredFields = [
+    'firstName',
+    'lastName',
+    'email',
+    'gender',
+    'ageGroup'
+  ];
+
+  const isComplete = requiredFields.every(field =>
+    user[field] && user[field].toString().trim() !== ''
+  );
+
+  return isComplete;
 };
 
 const listUser = async (currentUserId) => {
@@ -137,5 +218,6 @@ module.exports = {
   getUserDataById,
   checkUserExistById,
   updateUser,
+  isProfileComplete,
   listUser
 };
