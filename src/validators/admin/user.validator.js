@@ -22,36 +22,16 @@ const addUser = Joi.object({
   firstName: Joi.string().required(),
   lastName: Joi.string().required(),
   email: Joi.string().email().required(),
-  phoneNumber: Joi.string().required(),
-  gender: Joi.string().required(),
-  maritalStatus: Joi.string().required(),
-  role: Joi.string().valid("admin", "user", "agency", "agents").required(),
-  careerId: Joi.when("role", {
-    is: "agency",
-    then: Joi.string().required().messages({
-      "any.required": "Career is required for agency users",
-    }),
-    otherwise: Joi.forbidden(),
-  }),
-  DOB: Joi.string().required(),
+  role: Joi.string().valid("admin", "user").required(),
   password: Joi.string().required(),
+  profileimageurl: Joi.optional(),
 });
 
 const updateuser = Joi.object({
   firstName: Joi.string().required(),
   lastName: Joi.string().required(),
-  phoneNumber: Joi.string().required(),
-  gender: Joi.string().required(),
-  maritalStatus: Joi.string().required(),
-  role: Joi.string().valid("admin", "user", "agency", "agents").required(),
-  careerId: Joi.when("role", {
-    is: "agency",
-    then: Joi.string().required().messages({
-      "any.required": "Career is required for agency users",
-    }),
-    otherwise: Joi.forbidden(),
-  }),
-  DOB: Joi.string().required(),
+  role: Joi.string().valid("admin", "user").required(),
+  profileimageurl: Joi.optional(),
 });
 
 const singleId = Joi.object({

@@ -17,7 +17,7 @@ router.post(
 
 router.post(
   '/add-user',
-  //upload.single('profileimageurl'),
+  upload.single('profileimageurl'),
   validator.body(validationSchema.addUser),
   controller.addUser,
 );

@@ -36,7 +36,6 @@ const edituser = catchAsync(async (req, res) => {
 const updateUser = catchAsync(async (req, res) => {
   const id = req.params.id;
   const data = { ...req.body };
-  console.log(data);
   if (req.file && req.file.location) {
     data.profileimageurl = req.file.location;
   }
